@@ -264,9 +264,13 @@ lb                         : ok=4    changed=3    unreachable=0    failed=0    s
 web1                       : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 web2                       : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 
-
-
-
+------
+The user is vagrant
+become: yes   elevates the rights of vagrant
+------
+become_user = root
+changes user to root / however vargarnt owns tjose boxes so root does not have authority to run apt jobs 
+------
 
 
 
