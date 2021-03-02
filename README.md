@@ -2,6 +2,7 @@
 
 Code for [Episode #45 - Learning Ansible with Vagrant (Part 2/4)](https://sysadmincasts.com/episodes/45-learning-ansible-with-vagrant-part-2-4).
 
+```
 ansible web1 -m ping 
 
 ansible --version
@@ -17,3 +18,5 @@ hostfile = /home/vagrant/inventory.ini
 Some commands
 =============
 -m  ansible modules  .... 
+
+```
