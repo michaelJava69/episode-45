@@ -1,0 +1,183 @@
+lets say asked to update the ntp installation  installed using ntp.conf
+
+ntp.conf
+driftfile /var/lib/ntp/ntp.drift
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+###
+server 0.ubuntu.pool.ntp.org
+server 1.ubuntu.pool.ntp.org
+server 2.ubuntu.pool.ntp.org
+server 3.ubuntu.pool.ntp.org
+####
+server ntp.ubuntu.com
+restrict -4 default kod notrap nomodify nopeer noquery
+restrict -6 default kod notrap nomodify nopeer noquery
+restrict 127.0.0.1
+restrict ::1
+
+
+Want to change server list
+goto www.pool.ntp.org/zone/canada
+get server zones for canada
+
+## update ### vi files/ntp.conf
+driftfile /var/lib/ntp/ntp.drift
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+server 0.ca.pool.ntp.org
+server 1.ca.pool.ntp.org
+server 2.ca.pool.ntp.org
+server 3.ca.pool.ntp.org
+server ntp.ubuntu.com
+restrict -4 default kod notrap nomodify nopeer noquery
+restrict -6 default kod notrap nomodify nopeer noquery
+restrict 127.0.0.1
+restrict ::1
+
+
+run e45-ntp-install.yml playbook again
+--------------------------------------
+
+
+Gathering Facts
+===============
+-m setup gathers facts
+
+ansible web1 -i hosts -m setup -a "filter=ansible_all_ipv4_addresses"
+ansible -i hosts all -m setup -a "filter=ansible_all_ipv4_addresses"
+
+lb | SUCCESS => {
+    "ansible_facts": {
+        "ansible_all_ipv4_addresses": [
+            "10.0.2.15",
+            "10.0.15.11"
+        ],
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false
+}
+web1 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_all_ipv4_addresses": [
+            "10.0.2.15",
+            "10.0.15.21"
+        ],
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false
+}
+web2 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_all_ipv4_addresses": [
+            "10.0.2.15",
+            "10.0.15.22"
+        ],
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false
+}
+
+
+ansible -i hosts all -m setup -a "filter=ansible_distribution"
+
+Templates
+=========
+vagrant@mgmt:~$ cat e45-ntp-template.yml 
+---
+- hosts: all
+  become: yes
+  gather_facts: no  
+  vars:
+    noc_ntpserver: 0.ca.pool.ntp.org
+
+  tasks:
+
+  - name: install ntp
+    apt: name=ntp state=latest update_cache=yes
+
+  - name: write our ntp.conf
+    template: src=/home/vagrant/files/ntp.conf.j2 dest=/etc/ntp.conf mode=644 owner=root group=root
+    notify: restart ntp
+
+  - name: start ntp
+    service: name=ntp state=started
+
+  handlers:
+
+  - name: restart ntp
+    service: name=ntp state=restarted
+
+
+Diffrences with Install
+=======================
+1. noc_ntpserver
+variables are basically custom facts that you can define.  
+I am defining a fact called, noc_ntpserver. This might be useful if you had an internal ntp server that you wanted 
+to point your machines at.
+2.
+
+template: src=/home/vagrant/files/ntp.conf.j2 dest=/etc/ntp.conf mode=644 owner=root group=root
+========                          ===========
+
+vagrant@mgmt:~$ cat files/ntp.conf.j2 
+# {{ ansible_managed }}
+driftfile /var/lib/ntp/ntp.drift
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+server {{ noc_ntpserver }}                                      ##### 1.
+restrict -4 default kod notrap nomodify nopeer noquery
+restrict -6 default kod notrap nomodify nopeer noquery
+restrict 127.0.0.1
+restrict ::1
+
+Down here, you will notice our server section has been replaced, by the noc_ntpserver custom variable. 
+This will take the variable from our e45-ntp-template.yml playbook, and insert our predefined value. 
+
+This is useful for moving configuration out of the files, and into the playbook, and it is a bit of a personal preference. 
+The idea is to add custom variables into the playbook, rather than digging through the configuration files. 
+It is not uncommon to see tens of custom variables in more advanced playbooks.
+
+vagrant@mgmt:~$ ansible-playbook -i hostse45-ntp-template.yml
+-------------------------------------------------------------
+
+log into web1, and have a peak at the /etc/ntp.conf file. 
+vagrant@mgmt:~$ ssh web1
+
+vagrant@web1:~$ cat /etc/ntp.conf 
+# Ansible managed: /home/vagrant/files/ntp.conf.j2 modified on 2015-01-24 18:29:35 by vagrant on mgmt
+driftfile /var/lib/ntp/ntp.drift
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+server 0.ca.pool.ntp.org
+restrict -4 default kod notrap nomodify nopeer noquery
+restrict -6 default kod notrap nomodify nopeer noquery
+restrict 127.0.0.1
+restrict ::1
+So, that is basically a crash course on facts, variables, and templates. Lets exit web1 and head back to the management node.
+
+
+Cleaning Up
+===========
+I though we could come full circle, and clean up our environment, by removing ntp from the client nodes. The final example for this episode, is the e45-ntp-remove.yml playbook, lets just quickly take a look at what it does.
+
+vagrant@mgmt:~$ cat e45-ntp-remove.yml
+---
+- hosts: all
+  sudo: yes
+  gather_facts: no
+
+  tasks:
+
+  - name: remove ntp
+    apt: name=ntp state=absent 
+
+
