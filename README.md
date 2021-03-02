@@ -106,8 +106,8 @@ requires a key that we will say in in .ssh folder
 
 Action: copies the public key of mgmt server over into the autherised_keys on each of the hosts
 ======
-Now can ssh without password  :  
-ansible -i hosts all -m ping
+Then can ssh without password  :  using ansible -i hosts all -m ping
+
 
 Pre-step create id_rsa.pub
 --------------------------
@@ -115,8 +115,11 @@ ssh-keygen -t rsa -b 2048
 ssh-keygen -t rsa 
 ssh-keygen
 
- ansible-playbook -i hosts e45-ssh-addkey.yml --ask-pass
- --------------------------------------------------------
+
+Now run the playbook
+
+ansible-playbook -i hosts e45-ssh-addkey.yml --ask-pass
+--------------------------------------------------------
 
 PLAY [all] *********************************************************************************************************************************************************************************
 
@@ -132,7 +135,31 @@ web2                       : ok=1    changed=1    unreachable=0    failed=0    s
 
  
 
+Results
+========
+ansible -i hosts all -m ping
 
+web2 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+lb | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+web1 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": false,
+    "ping": "pong"
+}
 
 
 On mgmt  box
