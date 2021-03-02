@@ -182,4 +182,97 @@ Some commands
 =============
 -m  ansible modules  .... 
 
+ansible -i hosts all -m ping
+ansible -i hosts web1 -m apt -a "name=ntp state=installed"  : old
+
+ansible -i hosts web1 -m apt -a "name=ntp state=latest"     : error cause should be root
+ansible -i hosts web1 -m apt -a "name=ntp state=latest" --become   : works
+
+using ntp confg files  on web1
+------------------------------
+## copy module
+ansible -i hosts web1 -m copy  -a "src=/home/vagrant/files/ntp.conf dest=/etc/ntp.conf mode=644 owner=root group=root" --become
+
+## service module
+ansible -i hosts web1 -m service -a "name=ntp state=restarted"
+
+web1 | CHANGED => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python"
+    },
+    "changed": true,
+    "name": "ntp",
+    "state": "started"
+}
+
+Dealing with ntp via playbooks
+-------------------------------
+
+vagrant@mgmt:~$ cat e45-ntp-install.yml
+---
+- hosts: all
+  # become_user: root: root    : did not work
+  become: yes            
+  gather_facts: no
+
+  tasks:
+
+  - name: install ntp
+    apt: name=ntp state=latest update_cache=yes
+
+  - name: write our ntp.conf
+    copy: src=/home/vagrant/files/ntp.conf dest=/etc/ntp.conf mode=644 owner=root group=root
+    notify: restart ntp
+
+  - name: start ntp
+    service: name=ntp state=started
+
+  handlers:
+
+  - name: restart ntp
+    service: name=ntp state=restarted
+    
+Handler called is tasks recognise a change [idempotent behaviour]
+------------------------------------------------------------------
+
+ansible-playbook -i hosts e45-ntp-install.yml
+[WARNING]: Found both group and host with same name: lb
+
+PLAY [all] *********************************************************************************************************************************************************************************
+
+TASK [install ntp] *********************************************************************************************************************************************************************************
+ok: [web1]
+changed: [web2]
+changed: [lb]
+
+TASK [write our ntp.conf] *********************************************************************************************************************************************************************************
+ok: [web1]
+changed: [web2]
+changed: [lb]
+
+TASK [start ntp] *********************************************************************************************************************************************************************************
+ok: [web1]
+ok: [web2]
+ok: [lb]
+
+RUNNING HANDLER [restart ntp] *********************************************************************************************************************************************************************************
+changed: [lb]
+changed: [web2]
+
+PLAY RECAP *********************************************************************************************************************************************************************************
+lb                         : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+web1                       : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+web2                       : ok=4    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+
+
+
+
+
+
+
+====================================================================================
+https://docs.ansible.com/ansible/latest/collections/ansible/builtin/apt_module.html
+===================================================================================
+
 ```
