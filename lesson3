@@ -150,3 +150,93 @@ Roles   e46-role-site.yml
     
     
 ++++++++++++++++++++
+
+ansible web1 -m setup -a "filter=ansible_hostname"
+
+
+web1 | success >> {
+    "ansible_facts": {
+        "ansible_hostname": "web1"
+    },
+    "changed": false
+}
+
+
+index.html.j2
+=============
+
+
+less templates/index.html.j2 
+
+Served by {{ ansible_hostname }} ({{ ansible_eth1.ipv4.address }}).
+
+
+
+
+vagrant@mgmt:~$ ansible web1 -i hosts -m setup -a "filter=ansible_eth1"
+[WARNING]: Found both group and host with same name: lb
+web1 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_eth1": {
+            "active": true,
+            "device": "eth1",
+            "features": {
+
+
+ "ipv4": {
+                "address": "10.0.15.21",
+
+
+
+haproxy.cfg.j2
+==============
+
+
+cat haproxy.cfg.j2
+
+
+# {{ ansible_managed }}
+global
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        root
+    group       root
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats level admin
+
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+    # enable stats uri
+    stats enable
+    stats uri /haproxy?stats
+
+backend app
+    {% for host in groups['lb'] %}
+       listen episode46 {{ hostvars[host]['ansible_eth0']['ipv4']['address'] }}:80
+    {% endfor %}
+    balance     roundrobin
+    {% for host in groups['web'] %}
+        server {{ host }} {{ hostvars[host]['ansible_eth1']['ipv4']['address'] }} check port 80
+    {% endfor %}
+
