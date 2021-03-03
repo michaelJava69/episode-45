@@ -1,10 +1,14 @@
 
 ## Lesson 3
 
+##
+#  Prepariing ansible environment to be able to speak to other servers
+#
+######################
 
 
+###
 
-```
  #!/bin/bash
  
  
@@ -17,11 +21,17 @@ for val in ${StringArray[@]}; do
    ssh-keyscan $val >> ~/.ssh/known_hosts
 done
 
+###
 
  ssh-keyscan web3 web4 web5 web6 >> .ssh/known_hosts
  
+### 
+ 
  then can run the ansible playbook 
  ---------------------------------
+
+########
+ 
  
  ---
 - hosts: all
@@ -43,6 +53,6 @@ ssh-keygen     : creates rsa pub/priv keys
 
 ##########
 
+================================================================================================================================================================
 
 
-```
