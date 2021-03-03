@@ -1,0 +1,42 @@
+
+ #!/bin/bash
+ 
+ 
+# Declare an array of string with type
+declare -a StringArray=("web1" "web2" "lb"  )
+ 
+# Iterate the string array using for loop
+for val in ${StringArray[@]}; do
+   echo addding $val to list of known hosts
+   ssh-keyscan $val >> ~/.ssh/known_hosts
+done
+
+
+ ssh-keyscan web3 web4 web5 web6 >> .ssh/known_hosts
+ 
+ then can run the ansible playbook 
+ ---------------------------------
+ 
+ ---
+- hosts: all
+  become: yes
+  gather_facts: no
+  remote_user: vagrant
+
+  tasks:
+
+  - name: install ssh key
+    authorized_key: user=vagrant 
+                    key="{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}" 
+                    state=present
+                    
+                    
+##########
+
+ssh-keygen     : creates rsa pub/priv keys
+
+##########
+
+
+
+
