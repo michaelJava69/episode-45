@@ -240,3 +240,40 @@ backend app
         server {{ host }} {{ hostvars[host]['ansible_eth1']['ipv4']['address'] }} check port 80
     {% endfor %}
 
+
+
+anasible-playbook -i hosts  e46-site.yaml 
+
+Results
+=======
+
+
+http://localhost:8080/
+
+        #46 Demo
+        Served by web1 (10.0.15.21).
+        
+Roles
+======
+
+roles
+├── common
+│   └── tasks
+│       └── main.yml
+├── lb
+│   ├── handlers
+│   │   └── main.yml
+│   ├── tasks
+│   │   └── main.yml
+│   └── templates
+│       └── haproxy.cfg.j2
+└── web
+    ├── handlers
+    │   └── main.yml
+    ├── tasks
+    │   └── main.yml
+    └── templates
+        ├── default-site.j2
+        ├── index.html.j2
+        └── nginx.conf.j2
+
